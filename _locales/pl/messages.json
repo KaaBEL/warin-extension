@@ -1,0 +1,10 @@
+{
+	"WarinExtName": {
+		"message": "wtyczka WarIn.Space (experimental)",
+		"description": "Nazwa Wtyczki"
+	},
+	"WarinExtDesc": {
+		"message": "Dodatek do gry dodający zdięcia gry i inne funkcje lub skróty. Dokładne instrukcje są otwarte przy kliknięciu ikonki wtycki ze strony warin.space.",
+		"description": "Opis Wtyczki"
+	}
+}

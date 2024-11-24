@@ -1,0 +1,10 @@
+{
+	"WarinExtName": {
+		"message": "Warin extension (experimental)",
+		"description": "Extension Name"
+	},
+	"WarinExtDesc": {
+		"message": "Extension adds screenshoting of game and other light features. Detailed instructions are accesible by clicking at extension icon in warin.space page.",
+		"description": "Extension description"
+	}
+}

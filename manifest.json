@@ -1,0 +1,31 @@
+{
+	"manifest_version": 3,
+	"name": "__MSG_WarinExtName__",
+	"author": "https://github.com/KaaBEL",
+	"version": "0.1",
+	"default_locale": "en",
+	"description": "__MSG_WarinExtDesc__",
+	"icons": {
+		"16": "favicon16x16.png",
+		"32": "favicon32x32.png",
+		"64": "favicon64x64.png",
+		"128": "favicon128x128.png"
+	},
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "favicon64x64.png",
+        "favicon128x128.png"
+      ],
+      "matches": ["http://warin.space/*"]
+    }
+  ],
+	"content_scripts": [
+    {
+      "js": ["extension.js"],
+      "matches": [
+        "http://warin.space/"
+      ]
+    }
+	]
+}
