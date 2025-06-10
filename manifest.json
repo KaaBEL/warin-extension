@@ -1,8 +1,9 @@
 {
+	"$schema": "https://json.schemastore.org/chrome-manifest",
 	"manifest_version": 3,
 	"name": "__MSG_WarinExtName__",
 	"author": "https://github.com/KaaBEL",
-	"version": "0.1",
+	"version": "0.1.2",
 	"default_locale": "en",
 	"description": "__MSG_WarinExtDesc__",
 	"icons": {
@@ -23,9 +24,17 @@
 	"content_scripts": [
     {
       "js": ["extension.js"],
-      "matches": [
-        "http://warin.space/"
-      ]
+      "matches": ["http://warin.space/"],
+      "all_frames": true
+    },
+    {
+      "js": ["embedded.js"],
+      "matches": ["http://warin.space/embedded*"]
     }
-	]
+	],
+  "permissions": ["webRequest"],
+  "host_permissions": ["http://warin.space/"],
+  "browser_specific_settings": {
+    "gecko": {"id": "warin-extensoin@kaabel.github.io"}
+  }
 }

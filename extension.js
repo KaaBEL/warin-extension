@@ -1,9 +1,32 @@
+// TODO: add "use strict";
+/** @readonly */
+var version_embedded_js = "0.1.2";
++function firefoxWorkaround() {
+  try {
+    var xD = document.body.appendChild(CE("iframe")),
+      test = xD.contentDocument;
+    document.body.removeChild(xD);
+  } catch (error) {
+    document.contains(xD) && document.body.removeChild(xD);
+    if (typeof error != "object" || error && error.name !== "SecurityError")
+      return;
+  }
+  var script = document.body.appendChild(CE("button"));
+  script.setAttribute("onclick", "var escr = document.createElement(\"script\
+\");escr.type = \"text/javascript\";escr.src = \"https://raw.githubuserconte\
+nt.com/KaaBEL/warin-extension/refs/heads/main/extension.js\";document.body.a\
+ppendChild(escr);");
+  script.click();
+  document.body.removeChild(script);
+  throw new OverconstrainedError("firefox sux!");
+}();
 var html = document.head.parentNode;
 html.style.colorScheme = "dark", "end";
 html.setAttribute("lang", "en");
-function CE(e) {
+/** @type {typeof document.createElement} */
+var CE = (function (e) {
   return document.createElement(e);
-}
+});
 function TXT(e, d) {
   e.appendChild(document.createTextNode(d));
   return e;
@@ -113,7 +136,7 @@ l-8.94403,-24.23543l-68.37853,-61.16561M233.46416,190.84472l-8.94403,-24.235\
   TXT(a, "extension by kaabel");
   QS("#content").appendChild(b);
 }(CE("span"));
-var setgs = {
+var defaultSettings = {
     noRld: 1,
     onlyK: "Ctrl+R",
     wBlur: 1,
@@ -138,18 +161,20 @@ var setgs = {
     hidCE: 1,
     cable: 1,
     contr: 0,
-    emtsK: ["", "D", "Shift+D"],
-    emtsE: [-1, 0, 0],
+    emtsK: ["", "D", "Shift+D", "Ctrl+S"],
+    emtsE: [-1, 0, 0, -1],
     volSf: 1,
     volMu: 1,
     musTr: 0,
     lMFPS: 0,
     scrSC: 0,
     scrRR: 0,
-    rCOUG: 0,
-    tests: 0
+    tests: 0,
+    frRat: 0,
+    prvDf: 1
   },
-  defaultSettings = setgs,
+  /** @type {typeof defaultSettings} */
+  setgs = JSON.parse(JSON.stringify(defaultSettings)),
   tmp = {
     0: 0,
     blink: 1,
@@ -158,12 +183,9 @@ var setgs = {
   },
   putToPopup = function () {},
   settings = function (s, p, o, e) {
-    setgs = JSON.parse(JSON.stringify(setgs));
     if (s = localStorage.getItem("settings"))
       for (p in (o = JSON.parse(s)))
         setgs[p] = o[p];
-    // remove as early as possibble
-    console.log(setgs.rCOUG && (e = QS(".OurGames")) && QS("#content").removeChild(e));
     return function (ar, mesg) {
       s && mesg.setAttribute("datachanged", "");
       s && mesg.setAttribute("data", s);
@@ -216,7 +238,7 @@ function dws() {
     to.id ? to.appendChild(e0) : to.insertBefore(e0, to.childNodes[2]);
   }
 }
-var lsUpd = 0, win = window, doc = document, pop = win, opt = {};
+var lsUpd = 0, win = window, doc = document, opt = {};
 function updateSetting(s, v) {
   s ? setgs[s] = v : 0;
   var p = "", mesg = QS("#warin-screenshots"), chgd = {};
@@ -263,7 +285,7 @@ function updater(s) {
 }
 function extensionPage() {
   win !== window && win && win.close(win.onbeforeunload = null);
-  if (!(pop = win = window.open()))
+  if (!(win = window.open()))
     return console.log("window.open() returned:", win);
   var D = doc = win.document, tag = document.createTextNode("");
   window.onbeforeunload = function () {
@@ -308,14 +330,16 @@ x;}"));
     var p = (opt.p || doc.body).appendChild(CE("p"));
     opt.p || (opt.p = p);
     p.appendChild(TXT(CE("div"), name));
+    p.id = ("" + name).trim().replace(/ /g, "-").toLowerCase();
     var inp = opt.inp = type ? p.appendChild(CE("input")) : p;
     inp.oninput = updater(meth, (inp.type = type), inp, value);
     type === "text" && inp.setAttribute("maxLenght", "255");
     opt.el && p.appendChild(opt.el);
     p.appendChild(TXT(el = CE("span"), desc));
   }
-  function setKeysCode(s, o) {
-    o.inp.value = setgs[s];
+  /** @param {object} [obj] */
+  function setKeysCode(s, o, obj) {
+    o.inp.value = (obj || setgs)[s];
     o.inp.onkeydown = function (e) {
       e.key === "Tab" || e.preventDefault() && e.target.value ?
         0 : e.target.value =
@@ -324,10 +348,16 @@ x;}"));
         (e.shiftKey ? "Shift+" : "") + (e.key || "").toUpperCase();
       o.inp.oninput(e);
     };
+    o.inp.onpaste = function (e) {
+      console.log(JSON.stringify(e))
+      setTimeout(function () {
+        o.inp.oninput(e);
+      }, 10);
+    };
   }
   function clanTag(v) {
     tag.data = " " + (v && "[" + v + "] ") +
-      (localStorage.getItem("username") || "hull");
+      (localStorage.getItem("username") || "[unnamed]");
     return v;
   }
   function setVolumeRange(s, o) {
@@ -474,39 +504,66 @@ tended (probablly) and selected music track saves as setting, which makes it\
   }, "cable", "Extension Author", "Disable to display \"Warin Extension\" in\
  main screen as extension button instead of \"extension by kaabel\".");
 
+  appendSetting("checkbox", 0, "prvDf", "Prevent Browser Shortcuts", "Any ke\
+yboard shortcut used while playing may prevent browser default behaviour for\
+ used shortcut, this option that applies to all shortcuts listed below in \"\
+Emotes Keyshortcuts\" setting, use null value for not sending an emote face \
+by pressing Escape or N key. You can use it to for example not open file exp\
+lorer after accidentally pressing Ctrl+S.", opt = {});
+
   appendSetting("button", "Add", function () {}, "Emotes Keyshortcuts", "Eac\
-h not previously used shortcut, which use while playing game can be used sen\
-ds emote specified by number 0 - 9. Add button adds new slot at the end, eac\
-h can be deleted separately. Notice that shortcut \"D\" wouldn't work when s\
-hip break is used with Shift, so emote 0 needs also \"Shift+D\", beacause th\
-e Ctrl/Cmd, Alt nad Shift key count too.", opt = {});
+h not previously used keyboard shortcut, while playing game can be used to s\
+ends emote specified by number 0 - 9, null means unspecified emote so it deo\
+sn't send. Add button adds new slot at the end, each can be deleted separate\
+ly. Notice that shortcut \"D\" wouldn't work when ship breaks are used with \
+Shift, so emote 0 needs also \"Shift+D\", beacause the Ctrl/Cmd, Alt nad Shi\
+ft key count too.", opt = {});
   var emotes = opt.p, emKeys = setgs.emtsK, emEmts = setgs.emtsE;
   var emEls = [{el: opt.p, id: function (i) {}}];
   function appendEmoteKeys(id) {
     var ks = emKeys[id], emote = emEmts[id];
     var item = emotes.appendChild(CE("p")),
       warn = TXT(CE("span"), "emote shortcut already exists ");
-    item.appendChild(CE("input")).onkeydown = function (e) {
-      (e.key === "Tab" || e.preventDefault()) && e.target.value ?
-        0 : ks = e.target.value =
-        (e.key === "Backspace" || e.key === "Delete") && e.target.value ?
-        "" : (e.ctrlKey ? "Ctrl+" : "") + (e.altKey ? "Alt+" : "") +
-        (e.shiftKey ? "Shift+" : "") + (e.key || "").toUpperCase();
+    function checkExisting() {
       var n0 = 0, n1 = emKeys.indexOf(ks), pr = emKeys[id];
       (n0 = pr !== (emKeys[id] = ks) ? emKeys.indexOf(pr) : -1) != -1 &&
         (n0 > id ? emEls[n0].el : warn).classList.add("none");
       pr !== ks && n1 != -1 &&
         (n1 > id ? emEls[n1].el : warn).classList.remove("none");
       updateSetting();
+    }
+    item.appendChild(CE("input")).onkeydown = function (e) {
+      (e.key === "Tab" || e.preventDefault()) && e.target.value ?
+        0 : ks = e.target.value =
+        (e.key === "Backspace" || e.key === "Delete") && e.target.value ?
+        "" : (e.ctrlKey ? "Ctrl+" : "") + (e.altKey ? "Alt+" : "") +
+        (e.shiftKey ? "Shift+" : "") + (e.key || "").toUpperCase();
+      checkExisting();
+    };
+    item.lastChild.onpaste = function (e) {
+      console.log(JSON.stringify(e));
+      setTimeout(function () {
+        ks = e.target.value;
+      }, 10);
+      checkExisting();
     };
     item.lastChild.value = ks;
     item.appendChild(TXT(CE("span"), "keyboard shortcut, "));
     item.appendChild(CE("input")).oninput = function () {
-      emote = Number(this.value.slice(-1));
-      emEmts[id] = this.value = emote >= 0 && emote <= 9 ? emote : 1;
+      emote = /[nN][^nN]?$/.test(this.value) ? -1 :
+        Number(this.value.slice(-1));
+      emEmts[id] = emote >= -1 && emote <= 9 ? emote | 0 : 1;
+      this.value = emote === -1 ? "null" : emote;
       updateSetting();
     };
-    item.lastChild.value = emote !== -1 ? emote : "";
+    item.lastChild.onkeydown = function (e) {
+      if (e.key !== "Escape")
+        return;
+      emotes[id] = -1;
+      this.value = "null";
+      updateSetting();
+    }
+    item.lastChild.value = emote !== -1 ? emote : "null";
     item.appendChild(TXT(CE("span"), "emote number "));
     item.appendChild(TXT(CE("button"), "remove")).onclick = function () {
       for (; ++id < emKeys.length;)
@@ -549,15 +606,26 @@ e Ctrl/Cmd, Alt nad Shift key count too.", opt = {});
     }
     updateSetting("sgsBg", b);
   }
+
+  appendSetting("", 0, "", "Embedded Warin", "Allows playing fullscreen with\
+ custom size and positioning of the game. Helps if you are annoyed by clicki\
+ng on different tabs or away from window. Set the width, height and margin i\
+n iputs below: ", opt = {});
+  var a = CE("a");
+  TXT(a, a.href = "http://warin.space/embedded").target = "_blank";
+  opt.p.lastChild.appendChild(a);
+
   appendSetting("checkbox", 0, "tests", "Custom DevTest", "If this feature d\
 oes anything at all it's because I've not sanitized this public version from\
  it. You can find it only in source code.")
 
-  appendSetting("checkbox", 0, "lMFPS", "Lowered FPS in mennu", "While in me\
-nu next frame will render at least a second after the previous one.");
+  appendSetting("checkbox", 0, "frRat", "Display FPS counter", "Shows FPS co\
+unt updated every second, to give an estimate on FPS.")
 
-  appendSetting("checkbox", 0, "rCOUG", "Remove \"OurGames\"", "Removes the c\
-heck out our new game: Zero King part together with the video.")
+  opt = {el: el = TXT(CE("span"), "reload game to apply this setting")};
+  el.className = "warn";
+  appendSetting("checkbox", 0, "lMFPS", "Lowered FPS in mennu", "While in me\
+nu next frame will render at least a second after the previous one.", opt);
 
   appendSetting("checkbox", setgs.sgsBg, bgColor());
   D.body.appendChild(CE("p")).className = "end";
@@ -585,6 +653,7 @@ heck out our new game: Zero King part together with the video.")
 }
 
 function screenshot4k(rr, fn, el, fT, lE) {
+  "use strict";
   function gB(e) {
     return document.getElementById(e);
   }
@@ -688,8 +757,8 @@ RSTUVWXY"[t.getUTCHours()] + ((t / 1000 | 0) % 3600) + " " + x.toFixed(7) +
     }
     var id = Im() ? -1 : sG.emtsK.indexOf(k), n = 0;
     if (id !== -1) {
-      n = Number(sG.emtsE[PD(id)]);
-      return n >= 0 && n <= 9 ? Gf(n) : console.debug("skipped emote:", n);
+      if ((n = Number(sG.emtsE[sG.prvDf ? PD(id) : id])) !== -1)
+        return n >= 0 && n <= 9 ? Gf(n) : console.debug("skipped emote:", n);
     }
   };
   function rst() {
@@ -837,7 +906,7 @@ to;font-family: xirod;color: #ff0;visibility: hidden;position: relative;");
       sG.volMu || (mS.textDecoration = "line-through");
     }(gB("MusicIDText"));
   }
-  (function (f, vt, v, e, p){
+  var fr = (function (f, vt, v, e, p){
     e = document.querySelector("#Options span h3"), p = e.parentNode;
     p && p.insertBefore(document.createElement("h3").appendChild(vt), e);
     fT($a, "f");
@@ -850,6 +919,12 @@ to;font-family: xirod;color: #ff0;visibility: hidden;position: relative;");
       }
     };
     $a.f = f;
+    (p = aE("div")).className = "ioSpace";
+    p.style.width = "auto";
+    p.appendChild(e = document.createTextNode(""));
+    return function (n) {
+      e.data = gSg("frRat") ? (Rd.f = n) + " FPS" : "";
+    }
   })($a, document.createTextNode(""));
   gSg("tests") && function (t) {
     window.addEventListener("keydown", function (e) {
@@ -857,13 +932,17 @@ to;font-family: xirod;color: #ff0;visibility: hidden;position: relative;");
       t = Date.now();
     }, !1);
   }(Date.now());
-  sG.lMFPS && !Rd.o && function (oR, tF) {
-    (Rd = function () {
+  !Rd.o && function (oR, tF, fA) {
+    (Rd = (sG.lMFPS ? function () {
       window.requestAnimationFrame(Rd);
-      vd ? render() :
-        Date.now() > tF + 992 && (tF = Date.now()) && render();
-    }).o = oR;
-  }(Rd, Date.now());
+      (Date.now() > tF + 999 ? (tF = Date.now(), fr(fA), fA = 1) :
+        vd && ++fA) && render();
+    } : function () {
+      window.requestAnimationFrame(Rd);
+      Date.now() > tF + 999 ? (tF = Date.now(), fr(fA), fA = 1) : fA++;
+      render();
+    })).o = oR;
+  }(Rd, Date.now(), 0);
   return kD;
 }
 
